@@ -1,0 +1,63 @@
+---
+- name: "Hosting a Static Website Usign Nginx"
+  hosts: static
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: latest
+
+    - name: Remove default Nginx configuration
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Upload custom Nginx configuration
+      copy:
+        dest: /etc/nginx/sites-available/static_site
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              location / {
+                  root /var/www/static_site;
+                  index index.html;
+              }
+          }
+
+    - name: Enable custom Nginx configuration
+      file:
+        src: /etc/nginx/sites-available/static_site
+        dest: /etc/nginx/sites-enabled/static_site
+        state: link
+
+    - name: Create directory for static website
+      file:
+        path: /var/www/static_site
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Deploy static website files
+      copy:
+        src: /Users/sandesh/Adex/Ansible/first-nginx/index.html
+        dest: /var/www/static_site/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Ensure Nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true
